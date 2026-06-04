@@ -1,7 +1,7 @@
 import { validateAngolaPhone } from "../utils/validatePhone";
 import { formatPhone } from "../utils/phoneMask";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { registerUser } from "../services/api";
 import AddressAutocomplete from "../components/AddressAutocomplete";
@@ -12,25 +12,29 @@ export default function Register() {
 
     const [phone, setPhone] = useState("");
     const [address, setAddress] = useState("");
+    const [latitude, setLatitude] = useState("");
+    const [longitude, setLongitude] = useState("");
     const [loading, setLoading] = useState(false)
 
     const navigate = useNavigate()
 
+    useEffect(() => {
+        const storedUser = localStorage.getItem("userSession");
+        if (storedUser) {
+            navigate("/home");
+        }
+    }, [navigate]);
+
     //função para submeter 
     async function handleSubmit() {
         //verificar se há dados no input
-        if (!phone || !address) {
-            alert("Preenche todos os campos");
+        if (!phone || !address || !latitude || !longitude) {
+            alert("Preenche todos os campos e selecione um endereço válido");
             return;
         }
         //Verificar se dados é válido
         if (!validateAngolaPhone(phone)) {
             alert("Número de telefone inválido")
-        }
-
-        //verificar a morada
-        if (!address) {
-            alert("Selecione uma morada")
             return;
         }
 
@@ -41,16 +45,29 @@ export default function Register() {
         try {
             //chamar o backend
             const response = await registerUser({
-                phone, address
+                phone,
+                address,
+                latitude,
+                longitude
             });
-            //caso der certo vai para verificação
-            if (response.sucess) {
-                navigate("/verify", {
-                    state: { phone }
-                });
-            } else {
-                alert(response.error || "Erro ao registrar")
+
+            if (response.success) {
+                alert(response.message || "Conta criada com sucesso.");
+                localStorage.setItem(
+                    "userSession",
+                    JSON.stringify({
+                        phone,
+                        address,
+                        latitude,
+                        longitude,
+                        verified: true
+                    })
+                );
+                navigate("/home");
+                return;
             }
+
+            alert(response.error || "Erro ao registrar");
         } catch (error) {
             alert(error.message || "Erro de ligação ao servidor");
         }
@@ -91,6 +108,8 @@ export default function Register() {
                     value={address}
                     onSelect={(location) => {
                         setAddress(location.address);
+                        setLatitude(location.latitude);
+                        setLongitude(location.longitude);
                     }}
                 />
 

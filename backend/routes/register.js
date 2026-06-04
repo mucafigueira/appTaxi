@@ -1,60 +1,71 @@
 const pool = require('../database/db');
-const { generateOTP } = require('../services/otp');
 
-const senDSMS = require('../services/sms');
+async function ensureUsersTable() {
+    await pool.query(`
+        CREATE TABLE IF NOT EXISTS users (
+            phone TEXT PRIMARY KEY,
+            address TEXT,
+            latitude NUMERIC,
+            longitude NUMERIC,
+            verified BOOLEAN DEFAULT TRUE
+        )
+    `);
+}
 
 async function register(req, res, body) {
-    const { phone, address } = body;
-    //BUCAR UTILIZADOR
-    const user = await pool.query(`
-        SELECT * FROM users WHERE phone = $1,
-    [phone]
-    `);
+    const { phone, address, latitude, longitude } = body;
 
-    if (user.rows.length > 0) {
-
-        const lastRequest = user.rows[0].last_otp_request;
-        if (lastRequest) {
-            const secondsPassed = Math.floor((Date.now() - new Date(lastRequest).getTime()) / 1000);
-            if (secondsPassed < 60) {
-                res.writeHead(429);
-                return res.end(JSON.stringify({
-                    error: `Aguarde ${60 - secondsPassed} segundos para solicitar um novo código`
-                })
-                );
-            }
-        }
-
+    if (!phone || !address || !latitude || !longitude) {
         res.writeHead(400);
-        return res.end(JSON.stringify({
-            error: "Telefone já exite"
-        })
-        );
+        return res.end(JSON.stringify({ error: "Todos os campos são obrigatórios." }));
     }
 
-    //salvar usuário
+    await ensureUsersTable();
+
+    const userResult = await pool.query(
+        `SELECT * FROM users WHERE phone = $1`,
+        [phone]
+    );
+
+    if (userResult.rows.length > 0) {
+        const user = userResult.rows[0];
+
+        await pool.query(
+            `UPDATE users SET address = $1, latitude = $2, longitude = $3, verified = TRUE WHERE phone = $4`,
+            [address, latitude, longitude, phone]
+        );
+
+        res.writeHead(200);
+        return res.end(JSON.stringify({
+            success: true,
+            message: "Conta criada com sucesso.",
+            user: {
+                phone: user.phone,
+                address,
+                latitude,
+                longitude,
+                verified: true
+            }
+        }));
+    }
+
     await pool.query(
-        `INSERT INTO users(phone, addresss) VALUE($1, $2)`,
-        [phone, address]
+        `INSERT INTO users(phone, address, latitude, longitude, verified) VALUES($1, $2, $3, $4, TRUE)`,
+        [phone, address, latitude, longitude]
     );
 
-    //OTP 
-    const code = generateOTP()
-    //expirar o código gerado 5 minutos
-    const expires = new Date(
-        Date.now() + 300000
-    );
-
-    await pool.query(`INSERT INTO eotp_codes(phone, code_expires_at) VALUE($1, $2, $3)`,
-        [phone, code_expires]
-    );
-    await senDSMS(phone, code);
     res.writeHead(200);
     res.end(JSON.stringify({
-        sucess: true,
-        messagem: "Código enviado"
-    })
-    );
+        success: true,
+        message: "Conta criada com sucesso.",
+        user: {
+            phone,
+            address,
+            latitude,
+            longitude,
+            verified: true
+        }
+    }));
 }
 
 module.exports = register;
