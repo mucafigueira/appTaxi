@@ -5,13 +5,26 @@ const senDSMS = require('../services/sms');
 
 async function register(req, res, body) {
     const { phone, address } = body;
-
+    //BUCAR UTILIZADOR
     const user = await pool.query(`
         SELECT * FROM users WHERE phone = $1,
     [phone]
     `);
 
     if (user.rows.length > 0) {
+
+        const lastRequest = user.rows[0].last_otp_request;
+        if (lastRequest) {
+            const secondsPassed = Math.floor((Date.now() - new Date(lastRequest).getTime()) / 1000);
+            if (secondsPassed < 60) {
+                res.writeHead(429);
+                return res.end(JSON.stringify({
+                    error: `Aguarde ${60 - secondsPassed} segundos para solicitar um novo código`
+                })
+                );
+            }
+        }
+
         res.writeHead(400);
         return res.end(JSON.stringify({
             error: "Telefone já exite"

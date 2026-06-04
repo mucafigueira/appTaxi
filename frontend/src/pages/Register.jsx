@@ -1,6 +1,11 @@
+import { validateAngolaPhone } from "../utils/validatePhone";
+import { formatPhone } from "../utils/phoneMask";
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { registerUser } from "../services/api";
+import AddressAutocomplete from "../components/AddressAutocomplete";
+
 
 
 export default function Register() {
@@ -18,6 +23,18 @@ export default function Register() {
             alert("Preenche todos os campos");
             return;
         }
+        //Verificar se dados é válido
+        if (!validateAngolaPhone(phone)) {
+            alert("Número de telefone inválido")
+        }
+
+        //verificar a morada
+        if (!address) {
+            alert("Selecione uma morada")
+            return;
+        }
+
+
 
         setLoading(true);
 
@@ -35,7 +52,7 @@ export default function Register() {
                 alert(response.error || "Erro ao registrar")
             }
         } catch (error) {
-            alert("Erro de ligação ao servidor");
+            alert(error.message || "Erro de ligação ao servidor");
         }
         setLoading(false);
     }
@@ -45,26 +62,39 @@ export default function Register() {
             <div className="w-full max-w-xl mt14 space-y-4">
 
                 <img src="/loading.png" sizes="24" alt="logo" />
-                <h1 className="text-xl font-bold text-center text-orange-600">Cria Saua Conta </h1>
+                <h1 className="text-xl font-bold text-center text-orange-600">Que Bom Ver-te Aqui,  Cria Sua Conta </h1>
                 <p className="text-sm text-gray-400 text-center font-semibold">leva apenas alguns segundos. O seu táxi mais próximo</p>
+
+
                 {/*Campo de telefone */}
-                <input
-                    type="tel"
-                    placeholder="Número de Telefone"
-                    className="input outline-0 w-full mt-8 text-md rounded-xl
+
+                <div className="join w-full">
+                    <span className="join-item mt-8 btn border-r-0 text-orange-600/50 rounded-l-xl
+                      border-orange-600/50
+                    "
+                    >
+                        +244
+                    </span>
+
+                    <input
+                        type="tel"
+                        placeholder="923 000 000"
+                        className="input outline-0 w-full mt-8 text-md rounded-r-xl
                      border-orange-600/50 font-semibold"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                />
+                        value={phone}
+                        onChange={(e) => setPhone(formatPhone(e.target.value))}
+                    />
+                </div>
+
                 {/*Campo de morada */}
-                <input
-                    type="text"
-                    placeholder="Digite seu endereço"
-                    className="input outline-0 w-full mt-2 text-md rounded-xl
-                     border-orange-600/50 font-semibold"
+                <AddressAutocomplete
                     value={address}
-                    onChange={(e) => setAddress(e.target.value)}
+                    onSelect={(location) => {
+                        setAddress(location.address);
+                    }}
                 />
+
+
 
                 <button
                     className="btn text-white bg-orange-600 border-0 mx-auto w-full"
