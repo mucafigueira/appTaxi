@@ -14,3 +14,16 @@ body {
   margin: 0;
   padding: 0;
 }
+
+@layer utilities {
+  .gradient-primary {
+      background: radial-gradient(circle, rgba(255, 249, 87, 0.38) 44%, rgba(255, 121, 87, 1) 85%);
+  }
+
+  .text-gradient {
+      background: linear-gradient(90deg,rgba(255, 207, 87, 0.99) 29%, rgba(255, 121, 87, 1) 55%);
+      -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text; 
+    }
+  }

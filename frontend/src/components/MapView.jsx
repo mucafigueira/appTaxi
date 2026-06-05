@@ -53,9 +53,11 @@ export default function MapView({
 
             center={center}
 
-            zoom={15}
+            zoom={15
 
-            className="h-full w-full"
+            }
+
+            className="h-[60%] w-full"
 
         >
 
